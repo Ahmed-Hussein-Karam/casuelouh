@@ -11,6 +11,7 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -50,7 +51,7 @@ class MainActivity : AppCompatActivity() {
     private var patternImageWidth = 0
     private var fashionNumClassesList: List<Int> = emptyList()
     private var patternNumClassesList: List<Int> = emptyList()
-    private lateinit var captureButton: Button
+    private lateinit var captureButton: ImageButton
     private var isCapturing = false
     private val fashionPredictions = mutableListOf<List<String>>()
     private val patternPredictions = mutableListOf<String>()

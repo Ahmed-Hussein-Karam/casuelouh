@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Casuelouh</string>
+    <string name="capture_button_description">Capture button</string>
 </resources>
