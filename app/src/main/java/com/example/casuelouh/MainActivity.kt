@@ -34,6 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
     private lateinit var cameraExecutor: ExecutorService
+    private lateinit var modelExecutor: ExecutorService
     private lateinit var fashionInterpreter: Interpreter
     private lateinit var patternInterpreter: Interpreter
     private lateinit var fashionLabels: Map<Int, List<String>>
@@ -62,6 +63,7 @@ class MainActivity : AppCompatActivity() {
 
         previewView = findViewById(R.id.previewView)
         cameraExecutor = Executors.newSingleThreadExecutor()
+        modelExecutor = Executors.newSingleThreadExecutor()
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) ==
             PackageManager.PERMISSION_GRANTED) {
@@ -84,9 +86,11 @@ class MainActivity : AppCompatActivity() {
                 it.setSurfaceProvider(previewView.surfaceProvider)
             }
 
-            val imageAnalyzer = ImageAnalysis.Builder().build().also {
-                it.setAnalyzer(cameraExecutor, MyImageAnalyzer())
-            }
+            val imageAnalyzer = ImageAnalysis.Builder()
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build().also {
+                    it.setAnalyzer(cameraExecutor, MyImageAnalyzer())
+                }
 
             val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
@@ -104,15 +108,14 @@ class MainActivity : AppCompatActivity() {
     private inner class MyImageAnalyzer : ImageAnalysis.Analyzer {
         override fun analyze(imageProxy: ImageProxy) {
             val bitmap = toBitmap(imageProxy)
+            imageProxy.close()
 
-            cameraExecutor.execute {
+            modelExecutor.execute {
                 val fashionPrediction = classifyFashionImage(bitmap)
                 val patternPrediction = classifyPatternImage(bitmap)
 
                 Log.d("Fashion Prediction", fashionPrediction)
                 Log.d("Pattern Prediction", patternPrediction)
-
-                imageProxy.close()
             }
         }
     }
