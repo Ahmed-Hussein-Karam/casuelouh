@@ -72,10 +72,9 @@ class MainActivity : AppCompatActivity() {
             requestPermissionLauncher.launch(Manifest.permission.CAMERA)
         }
 
-        initFashionInterpreter()
-        initPatternInterpreter()
         initFashionLabels()
         initPatternLabels()
+        initInterpretersAsync()
     }
 
     private fun startCamera() {
@@ -111,11 +110,16 @@ class MainActivity : AppCompatActivity() {
             imageProxy.close()
 
             modelExecutor.execute {
-                val fashionPrediction = classifyFashionImage(bitmap)
-                val patternPrediction = classifyPatternImage(bitmap)
+                // Check if interpreters are initialized
+                if (::fashionInterpreter.isInitialized && ::patternInterpreter.isInitialized) {
+                    val fashionPrediction = classifyFashionImage(bitmap)
+                    val patternPrediction = classifyPatternImage(bitmap)
 
-                Log.d("Fashion Prediction", fashionPrediction)
-                Log.d("Pattern Prediction", patternPrediction)
+                    Log.d("Fashion Prediction", fashionPrediction)
+                    Log.d("Pattern Prediction", patternPrediction)
+                } else {
+                    Log.e("Model", "Interpreters are not initialized yet")
+                }
             }
         }
     }
@@ -209,9 +213,16 @@ class MainActivity : AppCompatActivity() {
         return byteBuffer
     }
 
+    private fun initInterpretersAsync() {
+        modelExecutor.execute {
+            initFashionInterpreter()
+            initPatternInterpreter()
+        }
+    }
+
     private fun initFashionInterpreter() {
-        val fashionModel = loadModelFile("fashion_model.tflite")
-        fashionInterpreter = Interpreter(fashionModel)
+        val tfliteModel = loadModelFile("fashion_model.tflite")
+        fashionInterpreter = Interpreter(tfliteModel)
 
         val fashionInputTensor = fashionInterpreter.getInputTensor(0)
         fashionImageHeight = fashionInputTensor.shape()[1]
@@ -223,8 +234,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initPatternInterpreter() {
-        val patternModel = loadModelFile("pattern_model.tflite")
-        patternInterpreter = Interpreter(patternModel)
+        val tfliteModel = loadModelFile("pattern_model.tflite")
+        patternInterpreter = Interpreter(tfliteModel)
 
         val patternInputTensor = patternInterpreter.getInputTensor(0)
         patternImageHeight = patternInputTensor.shape()[1]
