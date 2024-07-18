@@ -9,6 +9,8 @@ import android.graphics.Rect
 import android.graphics.YuvImage
 import android.os.Bundle
 import android.util.Log
+import android.view.View
+import android.widget.Button
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -30,6 +32,8 @@ import java.nio.channels.FileChannel
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+import com.example.casuelouh.Garment
+
 class MainActivity : AppCompatActivity() {
 
     private lateinit var previewView: PreviewView
@@ -46,6 +50,10 @@ class MainActivity : AppCompatActivity() {
     private var patternImageWidth = 0
     private var fashionNumClassesList: List<Int> = emptyList()
     private var patternNumClassesList: List<Int> = emptyList()
+    private lateinit var captureButton: Button
+    private var isCapturing = false
+    private val fashionPredictions = mutableListOf<List<String>>()
+    private val patternPredictions = mutableListOf<String>()
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -62,6 +70,13 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         previewView = findViewById(R.id.previewView)
+        captureButton = findViewById(R.id.captureButton)
+        captureButton.isEnabled = false
+        captureButton.setOnClickListener {
+            it.isEnabled = false
+            isCapturing = true
+        }
+
         cameraExecutor = Executors.newSingleThreadExecutor()
         modelExecutor = Executors.newSingleThreadExecutor()
 
@@ -106,25 +121,39 @@ class MainActivity : AppCompatActivity() {
 
     private inner class MyImageAnalyzer : ImageAnalysis.Analyzer {
         override fun analyze(imageProxy: ImageProxy) {
+            if (!::fashionInterpreter.isInitialized || !::patternInterpreter.isInitialized || !isCapturing) {
+                imageProxy.close()
+                return
+            }
+
             val bitmap = toBitmap(imageProxy)
             imageProxy.close()
 
             modelExecutor.execute {
-                // Check if interpreters are initialized
-                if (::fashionInterpreter.isInitialized && ::patternInterpreter.isInitialized) {
-                    val fashionPrediction = classifyFashionImage(bitmap)
-                    val patternPrediction = classifyPatternImage(bitmap)
+                val fashionPrediction = classifyFashionImage(bitmap)
+                val patternPrediction = classifyPatternImage(bitmap)
 
-                    Log.d("Fashion Prediction", fashionPrediction)
-                    Log.d("Pattern Prediction", patternPrediction)
-                } else {
-                    Log.e("Model", "Interpreters are not initialized yet")
+                fashionPredictions.add(fashionPrediction)
+                patternPredictions.add(patternPrediction)
+
+                val capturedGarment = getCapturedGarment()
+
+                if (capturedGarment != null) {
+                    Log.d("Captured Garment", capturedGarment.toString())
+
+                    fashionPredictions.clear()
+                    patternPredictions.clear()
+
+                    runOnUiThread {
+                        captureButton.isEnabled = true
+                        isCapturing = false
+                    }
                 }
             }
         }
     }
 
-    private fun classifyFashionImage(bitmap: Bitmap): String {
+    private fun classifyFashionImage(bitmap: Bitmap): List<String> {
         val resizedBitmap = Bitmap.createScaledBitmap(bitmap, fashionImageWidth, fashionImageHeight, true)
         val fashionInputBuffer = TensorBuffer.createFixedSize(intArrayOf(1, fashionImageHeight, fashionImageWidth, 3), org.tensorflow.lite.DataType.FLOAT32)
         val fashionOutputBuffers = fashionNumClassesList.map { numClasses ->
@@ -145,7 +174,7 @@ class MainActivity : AppCompatActivity() {
             getPrediction(index, outputBuffer.floatArray, fashionLabels)
         }
 
-        return fashionPredictions.joinToString(", ")
+        return fashionPredictions
     }
 
     private fun classifyPatternImage(bitmap: Bitmap): String {
@@ -217,6 +246,10 @@ class MainActivity : AppCompatActivity() {
         modelExecutor.execute {
             initFashionInterpreter()
             initPatternInterpreter()
+            runOnUiThread {
+                captureButton.visibility = View.VISIBLE
+                captureButton.isEnabled = true
+            }
         }
     }
 
@@ -274,9 +307,34 @@ class MainActivity : AppCompatActivity() {
     private fun getPrediction(featureIndex: Int, outputArray: FloatArray, labels: Map<Int, List<String>>): String {
         val UNKNOWN = "Unknown"
         val maxIndex = outputArray.indices.maxByOrNull { outputArray[it] } ?: -1
-        if (maxIndex < 0.5) {
+        if (maxIndex < 0.65) {
             return UNKNOWN
         }
         return labels[featureIndex]?.get(maxIndex) ?: UNKNOWN
+    }
+
+    private fun getCapturedGarment(): Garment? {
+        if (fashionPredictions.size < 3 || patternPredictions.size < 3) {
+            return null
+        }
+
+        val recentFashionPredictions = fashionPredictions.takeLast(3)
+        val recentPatternPredictions = patternPredictions.takeLast(3)
+
+        val fashionMatch = recentFashionPredictions.all { it == recentFashionPredictions[0] }
+        val patternMatch = recentPatternPredictions.all { it == recentPatternPredictions[0] }
+
+        if (fashionMatch && patternMatch) {
+            val fashionPrediction = recentFashionPredictions[0]
+            val patternPrediction = recentPatternPredictions[0]
+
+            return Garment(
+                type = fashionPrediction[0],
+                baseColor = fashionPrediction[1],
+                usage = fashionPrediction[2],
+                pattern = patternPrediction
+            )
+        }
+        return null
     }
 }

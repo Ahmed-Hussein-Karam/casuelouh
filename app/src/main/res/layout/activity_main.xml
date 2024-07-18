@@ -15,4 +15,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <Button
+        android:id="@+id/captureButton"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_centerInParent="true"
+        android:background="@drawable/circular_button"
+        android:text="Capture"
+        android:textColor="@android:color/white"
+        android:visibility="gone" />
 </androidx.constraintlayout.widget.ConstraintLayout>
