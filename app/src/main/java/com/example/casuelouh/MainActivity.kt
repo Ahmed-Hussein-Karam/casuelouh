@@ -10,7 +10,6 @@ import android.graphics.YuvImage
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.ImageButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
@@ -66,15 +65,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun toggleCaptureButton(enabled: Boolean) {
+        captureButton.isEnabled = enabled
+
+        if (enabled) {
+            captureButton.setImageResource(android.R.drawable.ic_menu_view)
+        } else {
+            captureButton.setImageResource(android.R.drawable.ic_popup_sync)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         previewView = findViewById(R.id.previewView)
         captureButton = findViewById(R.id.captureButton)
-        captureButton.isEnabled = false
+
+        toggleCaptureButton(false)
         captureButton.setOnClickListener {
-            it.isEnabled = false
+            toggleCaptureButton(false)
             isCapturing = true
         }
 
@@ -146,7 +156,7 @@ class MainActivity : AppCompatActivity() {
                     patternPredictions.clear()
 
                     runOnUiThread {
-                        captureButton.isEnabled = true
+                        toggleCaptureButton(true)
                         isCapturing = false
                     }
                 }
@@ -249,7 +259,7 @@ class MainActivity : AppCompatActivity() {
             initPatternInterpreter()
             runOnUiThread {
                 captureButton.visibility = View.VISIBLE
-                captureButton.isEnabled = true
+                toggleCaptureButton(true)
             }
         }
     }
@@ -308,7 +318,7 @@ class MainActivity : AppCompatActivity() {
     private fun getPrediction(featureIndex: Int, outputArray: FloatArray, labels: Map<Int, List<String>>): String {
         val UNKNOWN = "Unknown"
         val maxIndex = outputArray.indices.maxByOrNull { outputArray[it] } ?: -1
-        if (maxIndex < 0.65) {
+        if (outputArray[maxIndex] < 0.65) {
             return UNKNOWN
         }
         return labels[featureIndex]?.get(maxIndex) ?: UNKNOWN
@@ -333,6 +343,7 @@ class MainActivity : AppCompatActivity() {
                 type = fashionPrediction[0],
                 baseColor = fashionPrediction[1],
                 usage = fashionPrediction[2],
+                gender = fashionPrediction[3],
                 pattern = patternPrediction
             )
         }
