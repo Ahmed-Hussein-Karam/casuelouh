@@ -2,7 +2,7 @@
     <string name="app_name">Casuelouh</string>
     <string name="capture_button_description">Capture button</string>
 
-<!--  prompts  -->
+    <!--  prompts  -->
     <string name="outfit_prompt">Suppose that a piece of clothing is characterized by the following properties:
 - type: string, a valid piece of clothes(e.g. t-shirt, shoes, sunglasses, skirt, Jacket, … etc).
     - coloring: string, describe the coloring of this element (e.g. red, blue with white spots, … etc).
@@ -49,4 +49,5 @@ Apply the hot prompt %2$s on "outfit" sub-array, and then re-update the "hotProm
 return the updated json so that your response should be valid json string without any extra text, greeting or explanation.
     </string>
     <string name="empty_api_response">{"outfit": [], "hotPrompts": []}</string>
+    <string name="title_activity_splash">SplashActivity</string>
 </resources>

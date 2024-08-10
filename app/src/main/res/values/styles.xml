@@ -1,7 +1,7 @@
 <resources>
 <style name="Theme.Casuelouh_AppCompat" parent="Theme.AppCompat.Light.DarkActionBar">
     <!-- Customize your theme here. -->
-    <item name="colorPrimary">@color/purple_500</item>
+    <item name="colorPrimary">@color/primary</item>
     <item name="colorPrimaryVariant">@color/purple_700</item>
     <item name="colorOnPrimary">@color/white</item>
     <item name="colorSecondary">@color/teal_200</item>

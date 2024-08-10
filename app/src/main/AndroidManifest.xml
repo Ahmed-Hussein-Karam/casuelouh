@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.casuelouh">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.casuelouh">
 
-    <uses-permission android:name="android.permission.CAMERA"/>
-    <uses-feature android:name="android.hardware.camera.any" android:required="true"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature
+        android:name="android.hardware.camera.any"
+        android:required="true" />
 
     <application
         android:allowBackup="true"
@@ -13,9 +17,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Casuelouh_AppCompat">
-        <activity android:name=".MainActivity" android:exported="true">
+        <activity
+            android:name=".SplashActivity"
+            android:exported="false"
+            android:label="@string/title_activity_splash"
+            android:theme="@style/Theme.Casuelouh_AppCompat" />
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
