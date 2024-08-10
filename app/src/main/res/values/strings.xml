@@ -5,49 +5,55 @@
     <!--  prompts  -->
     <string name="outfit_prompt">Suppose that a piece of clothing is characterized by the following properties:
 - type: string, a valid piece of clothes(e.g. t-shirt, shoes, sunglasses, skirt, Jacket, … etc).
-    - coloring: string, describe the coloring of this element (e.g. red, blue with white spots, … etc).
-    - gender: string, (e.g. Men, Unisex, Girls, … etc).
-    - usage: string, (e.g. casual, formal, smart casual, sport, … etc).
-    - pattern: string, (e.g. plain, floral, striped, gradient, … etc).
+- coloring: string, describe the coloring of this element (e.g. red, brown, blue with white spots, black and green, … etc).
+- gender: string, (e.g. Men, Unisex, Girls, … etc).
+- usage: string, (e.g. casual, formal, smart casual, sport, … etc).
+- pattern: string, (e.g. plain, floral, striped, gradient, … etc).
 
 
 In the attached image, you see some piece of clothing. Try to detect its properties. If you are unsure about some property, just give your best guess with no extra reasoning or explanation.
 
-In a json object, recommend two things (outfit and hot prompts)
+After that, in a json object, recommend two things (outfit pieces and hot prompts)
 
-Outfit (json array):
-an outfit based on this piece of clothes in the image, such that:
-* Each element in the json array is an object that represents an element that is part of the outfit.
-* Each element in the array is an object with the properties described above.
-* Elements of the array shape together a consistent elegant outfit that you recommend based on one input item I give you.
-* The item in the image should be part of the outfit you give me.
+Outfit pieces (json array):
+based on the detected piece of clothing in the image, recommend a full clothing outfit such that:
+* Each element in the json represents a single piece of clothing that is part of the outfit.
+* Each element in the array is an object with the clothing properties described above.
+* The clothing piece in the image should be included as part of the complete outfit you give me.
+* Elements of the array all together compose a consistent and elegant full clothing outfit.
+* Make the outfit consider intelligently different parts like top-wear, footwear, bottom wear and possibly extras like ties, sunglasses if needed, watches, scarves, caps, .. etc.
 
 Hot prompts (json array):
-According to the outfit you recommend, provide the user with 2 or 3 prompt suggestions that the user is likely to ask for some modifications on the outfit. Here are some example ideas of hot prompts:
+According to the outfit you recommend, provide the user with 2 or 3 prompt suggestions that the user is likely to need for some modifications on the outfit. Here are some example ideas of hot prompts:
 * Remove sunglasses
 * Change shirt style
+* Change outfit colors
+* Make it casual
 * Add a jacket
+* Replace pants with shorts
 Note that a hot prompt should be between 2 and 5 words and should be relevant to the outfit you already recommended.
+Also note that these are just some hot prompt ideas, you can creatively choose hot prompts according to what you think will likely add great touches to the outfit.
 
+Your final complete response should be valid json string without any extra text, greeting or explanation.
 
-Your response should be valid json string without any extra text, greeting or explanation.
-
-Output json format:
+Final output json format:
 {
-"outfit": array of clothing pieces,
+"outfit": array of outfit pieces,
 "hotPrompts": array of hot prompt strings
 }
-a clothing piece is an object with the format {"type": .., "coloring": .., "gender": .., "usage": .., "pattern": ..}
+
+where a single outfit piece is an object with the format {"type": .., "coloring": .., "gender": .., "usage": .., "pattern": ..}
 
 Corner cases:
 - if more than one piece of clothing appear in the image, just pick one of them and work on it.
 - if you see no clothes in the image, return empty json arrays like this: {"outfit": [], "hotPrompts": []}
     </string>
-
-    <string name="hot_prompt">Given the following json array: %1$s
-Apply the hot prompt %2$s on "outfit" sub-array, and then re-update the "hotPrompts" sub-array based on the final "outfit".
-return the updated json so that your response should be valid json string without any extra text, greeting or explanation.
+    <string name="outfit_plot">Given the following json array that represents a clothing outfit: %1$s
+generate an image of a mannequin wearing that outfit
     </string>
-    <string name="empty_api_response">{"outfit": [], "hotPrompts": []}</string>
+    <string name="hot_prompt">Given the following image representing a mannequin wearing some outfit: %1$
+Apply the following change on the outfit: %2$s. And then return the updated image.
+    </string>
+    <string name="empty_outfit">{"outfit": [], "hotPrompts": []}</string>
     <string name="title_activity_splash">SplashActivity</string>
 </resources>

@@ -14,21 +14,25 @@ import android.widget.ImageButton
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
-import androidx.camera.core.*
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ExperimentalGetImage
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageProxy
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.GoogleGenerativeAIException
+import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.generationConfig
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-
-import com.example.casuelouh.BuildConfig
-import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.content
-import com.google.ai.client.generativeai.type.generationConfig
-import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,6 +44,9 @@ class MainActivity : AppCompatActivity() {
     private var isCapturing = false
 
     private lateinit var outfitPrompt: String
+    private lateinit var emptyOutfit: String
+    private lateinit var outfitPlot: String
+    private lateinit var hotPrompt: String
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -70,6 +77,9 @@ class MainActivity : AppCompatActivity() {
 
         geminiApiKey = BuildConfig.GEMINI_API_KEY
         outfitPrompt = getString(R.string.outfit_prompt)
+        emptyOutfit = getString(R.string.empty_outfit)
+        outfitPlot = getString(R.string.outfit_plot)
+        hotPrompt = getString(R.string.hot_prompt)
 
         captureButton.setOnClickListener {
             toggleCaptureButton(false)
@@ -142,11 +152,17 @@ class MainActivity : AppCompatActivity() {
                     text(outfitPrompt)
                 }
 
-                val response = generativeModel.generateContent(inputContent)
-                Log.d("Outfit prompt: ", outfitPrompt)
-                Log.d("Gemini response: ", response.text?: "EMPTY RESPONSE!!")
+                var response_txt = emptyOutfit
+                try {
+                    response_txt = generativeModel.generateContent(inputContent).text?: emptyOutfit
+                } catch (e: GoogleGenerativeAIException) {
+                    Log.e("GoogleGenerativeAIException: ", e.toString())
+                }
 
-                val outfitResponse = parseOutfitJson(response.text?: getString(R.string.empty_api_response))
+                Log.d("Outfit prompt: ", outfitPrompt)
+                Log.d("Gemini response: ", response_txt)
+
+                val outfitResponse = parseOutfitJson(response_txt)
 
                 toggleCaptureButton(true)
             }
@@ -180,7 +196,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun parseOutfitJson(jsonString: String): OutfitResponse {
-        val data = Gson().fromJson(jsonString, OutfitResponse::class.java)
+        var data = Gson().fromJson(emptyOutfit, OutfitResponse::class.java)
+        try {
+            data = Gson().fromJson(jsonString, OutfitResponse::class.java)
+        } catch (e: JsonSyntaxException) {
+            Log.e("JsonSyntaxException: ", jsonString)
+        }
 
         return data
     }
