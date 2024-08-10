@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Casuelouh</string>
     <string name="capture_button_description">Capture button</string>
+    <string name="prompt_button_description">Prompt button</string>
 
     <!--  prompts  -->
     <string name="outfit_prompt">Suppose that a piece of clothing is characterized by the following properties:
@@ -24,7 +25,7 @@ based on the detected piece of clothing in the image, recommend a full clothing 
 * Make the outfit consider intelligently different parts like top-wear, footwear, bottom wear and possibly extras like ties, sunglasses if needed, watches, scarves, caps, .. etc.
 
 Hot prompts (json array):
-According to the outfit you recommend, provide the user with 2 or 3 prompt suggestions that the user is likely to need for some modifications on the outfit. Here are some example ideas of hot prompts:
+According to the outfit you recommend, provide the user with 3 prompt suggestions that the user is likely to need for some modifications on the outfit. Here are some example ideas of hot prompts:
 * Remove sunglasses
 * Change shirt style
 * Change outfit colors

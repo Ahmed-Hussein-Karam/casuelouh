@@ -31,5 +31,65 @@
         app:layout_constraintVertical_bias="1.0"
         android:visibility="gone" />
 
+    <LinearLayout
+        android:id="@+id/promptStackOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/promptButton_1"
+            android:layout_width="wrap_content"
+            android:layout_height="80dp"
+            android:layout_marginBottom="8dp"
+            android:padding="8dp"
+            android:textColor="@color/black"
+            android:background="@drawable/prompt_button"
+            android:contentDescription="@string/prompt_button_description"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintVertical_bias="0.0"
+            android:textAllCaps="false"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/promptButton_2"
+            android:layout_width="wrap_content"
+            android:layout_height="80dp"
+            android:layout_marginBottom="8dp"
+            android:padding="8dp"
+            android:textColor="@color/black"
+            android:background="@drawable/prompt_button"
+            android:contentDescription="@string/prompt_button_description"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintVertical_bias="0.0"
+            android:textAllCaps="false"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/promptButton_3"
+            android:layout_width="wrap_content"
+            android:layout_height="80dp"
+            android:layout_marginBottom="8dp"
+            android:padding="8dp"
+            android:textColor="@color/black"
+            android:background="@drawable/prompt_button"
+            android:contentDescription="@string/prompt_button_description"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintHorizontal_bias="0.0"
+            app:layout_constraintVertical_bias="0.0"
+            android:textAllCaps="false"
+            android:visibility="gone" />
+
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -10,7 +10,10 @@ import android.graphics.YuvImage
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -33,6 +36,7 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.math.min
 
 class MainActivity : AppCompatActivity() {
 
@@ -40,6 +44,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
 
     private lateinit var captureButton: ImageButton
+    private lateinit var promptStackOverlay: LinearLayout
+    private lateinit var promptButtons: MutableList<Button>
     private lateinit var geminiApiKey: String
     private var isCapturing = false
 
@@ -74,6 +80,17 @@ class MainActivity : AppCompatActivity() {
 
         previewView = findViewById(R.id.previewView)
         captureButton = findViewById(R.id.captureButton)
+        promptStackOverlay = findViewById(R.id.promptStackOverlay)
+        promptButtons = mutableListOf<Button>()
+        for (i in 0 until promptStackOverlay.childCount) {
+            val view = promptStackOverlay.getChildAt(i)
+            if (view is Button) {
+                view.setOnClickListener {
+                   applyPrompt(view.text.toString())
+                }
+                promptButtons.add(view)
+            }
+        }
 
         geminiApiKey = BuildConfig.GEMINI_API_KEY
         outfitPrompt = getString(R.string.outfit_prompt)
@@ -82,6 +99,7 @@ class MainActivity : AppCompatActivity() {
         hotPrompt = getString(R.string.hot_prompt)
 
         captureButton.setOnClickListener {
+            promptStackOverlay.visibility = View.GONE
             toggleCaptureButton(false)
             isCapturing = true
         }
@@ -164,6 +182,23 @@ class MainActivity : AppCompatActivity() {
 
                 val outfitResponse = parseOutfitJson(response_txt)
 
+                if (outfitResponse.outfit.isNotEmpty()) {
+                    val promptCount = min(outfitResponse.hotPrompts.size, promptButtons.size)
+
+                    if (promptCount > 0) {
+                        for (i in 0 until promptCount) {
+                            promptButtons[i].text = outfitResponse.hotPrompts[i]
+                            promptButtons[i].visibility = View.VISIBLE
+                        }
+                    }
+
+                    for (i in promptCount until promptButtons.size) {
+                        promptButtons[i].visibility = View.GONE
+                    }
+
+                    promptStackOverlay.visibility = View.VISIBLE
+                }
+
                 toggleCaptureButton(true)
             }
 
@@ -204,5 +239,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         return data
+    }
+    
+    private fun applyPrompt(prompt: String) {
+        Toast.makeText(this, prompt, Toast.LENGTH_SHORT).show()
     }
 }
