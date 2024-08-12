@@ -8,10 +8,12 @@ import android.graphics.ImageFormat
 import android.graphics.Rect
 import android.graphics.YuvImage
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
 import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,14 +28,24 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.example.casuelouh.ui.theme.GoogleImagenApiResponse
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.GoogleGenerativeAIException
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
+import com.google.auth.oauth2.GoogleCredentials
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
+import java.io.InputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import kotlin.math.min
@@ -44,6 +56,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var cameraExecutor: ExecutorService
 
     private lateinit var captureButton: ImageButton
+    private lateinit var outfitOverlayImageView: ImageView
     private lateinit var promptStackOverlay: LinearLayout
     private lateinit var promptButtons: MutableList<Button>
     private lateinit var geminiApiKey: String
@@ -51,8 +64,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var outfitPrompt: String
     private lateinit var emptyOutfit: String
-    private lateinit var outfitPlot: String
-    private lateinit var hotPrompt: String
+
+    private lateinit var googleCredentials: GoogleCredentials
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -74,12 +87,31 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private suspend fun getGoogleCredentials() {
+        withContext(Dispatchers.IO) {
+            try {
+                val inputStream: InputStream =
+                    resources.openRawResource(R.raw.casuelouh_service_account)
+                googleCredentials = GoogleCredentials.fromStream(inputStream)
+                    .createScoped(listOf("https://www.googleapis.com/auth/cloud-platform"))
+
+                googleCredentials.refreshIfExpired()
+
+                assert(googleCredentials.accessToken!!.tokenValue.isNotEmpty())
+                Log.d("[DEBUG]: Access token: ", googleCredentials.accessToken!!.tokenValue)
+            } catch (e: Exception) {
+                Log.e("[ERROR] Unable to get access token, error: ", e.message.toString())
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         previewView = findViewById(R.id.previewView)
         captureButton = findViewById(R.id.captureButton)
+        outfitOverlayImageView = findViewById(R.id.outfitImageView)
         promptStackOverlay = findViewById(R.id.promptStackOverlay)
         promptButtons = mutableListOf<Button>()
         for (i in 0 until promptStackOverlay.childCount) {
@@ -95,11 +127,14 @@ class MainActivity : AppCompatActivity() {
         geminiApiKey = BuildConfig.GEMINI_API_KEY
         outfitPrompt = getString(R.string.outfit_prompt)
         emptyOutfit = getString(R.string.empty_outfit)
-        outfitPlot = getString(R.string.outfit_plot)
-        hotPrompt = getString(R.string.hot_prompt)
+
+        lifecycleScope.launch {
+            getGoogleCredentials()
+        }
 
         captureButton.setOnClickListener {
             promptStackOverlay.visibility = View.GONE
+            outfitOverlayImageView.visibility = View.GONE
             toggleCaptureButton(false)
             isCapturing = true
         }
@@ -196,10 +231,15 @@ class MainActivity : AppCompatActivity() {
                         promptButtons[i].visibility = View.GONE
                     }
 
-                    promptStackOverlay.visibility = View.VISIBLE
-                }
+                    lifecycleScope.launch {
+                        generateOutfitImage(getString(R.string.outfit_plot, outfitResponse.outfit.toString()))
 
-                toggleCaptureButton(true)
+                        // Show hot prompts
+                        promptStackOverlay.visibility = View.VISIBLE
+
+                        toggleCaptureButton(true)
+                    }
+                }
             }
 
             isCapturing = false
@@ -239,6 +279,71 @@ class MainActivity : AppCompatActivity() {
         }
 
         return data
+    }
+
+    private fun base64ToBitmap(base64String: String): Bitmap? {
+        return try {
+            val decodedString = Base64.decode(base64String, Base64.DEFAULT)
+            BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+        } catch (e: IllegalArgumentException) {
+            Log.e("[ERROR] ", "could not parse base64 image")
+            null
+        }
+    }
+
+    // Function to display the image in ImageView
+    private fun displayImageInOverlay(base64String: String) {
+        val bitmap = base64ToBitmap(base64String)
+        bitmap?.let {
+            outfitOverlayImageView.setImageBitmap(it)
+            outfitOverlayImageView.visibility = ImageView.VISIBLE
+        }
+    }
+
+    private suspend fun generateOutfitImage(prompt: String) {
+        val client = OkHttpClient()
+        val jsonMediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
+        val jsonBody = "{\n" +
+                "  \"instances\": [\n" +
+                "    {\n" +
+                "      \"prompt\": \"${prompt}\"\n" +
+                "    }\n" +
+                "  ],\n" +
+                "  \"parameters\": {\n" +
+                "    \"sampleCount\": 1\n" +
+                "  }\n" +
+                "}"
+
+        val body = jsonBody.toRequestBody(jsonMediaType)
+        val request = Request.Builder()
+            .addHeader("Authorization", "Bearer ${googleCredentials.accessToken!!.tokenValue}")
+            .url("https://europe-west2-aiplatform.googleapis.com/v1/projects/casuelouh/locations/europe-west2/publishers/google/models/imagegeneration@006:predict")
+            .post(body)
+            .build()
+
+        // Execute the request
+        withContext(Dispatchers.IO) {
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    Log.i("[INFO]", "successful Imagen API response")
+                    response.body?.let { responseBody ->
+                        val apiResponseType = object : TypeToken<GoogleImagenApiResponse>() {}.type
+                        val apiResponse = Gson().fromJson<GoogleImagenApiResponse>(responseBody.string(), apiResponseType)
+
+                        val bytesBase64Encoded = apiResponse.predictions.firstOrNull()?.bytesBase64Encoded
+                        Log.i("[INFO] Base64 image", bytesBase64Encoded.toString())
+                        runOnUiThread {
+                            if (bytesBase64Encoded != null) {
+                                displayImageInOverlay(bytesBase64Encoded)
+                            }
+                        }
+                    } ?: Log.w("[WARN]: ", "Google Imagen API response is null")
+                }
+                else {
+                    Log.e("[ERROR] Google Imagen API error ", "Response: ${response.body?.string()}")
+                }
+            }
+        }
     }
     
     private fun applyPrompt(prompt: String) {

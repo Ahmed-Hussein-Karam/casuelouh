@@ -10,6 +10,8 @@
 .DS_Store
 /build
 /captures
+app/src/main/res/raw/casuelouh_service_account.json
+app/src/main/res/raw/casuelouh_service_account2.json
 .externalNativeBuild
 .cxx
 local.properties

@@ -53,9 +53,17 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+
     packaging {
         resources {
-            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+            excludes.addAll(
+                'META-INF/INDEX.LIST',
+                'META-INF/DEPENDENCIES',
+                'META-INF/LICENSE',
+                'META-INF/LICENSE.txt',
+                'META-INF/NOTICE',
+                'META-INF/NOTICE.txt'
+            )
         }
     }
 }
@@ -75,6 +83,12 @@ dependencies {
     implementation libs.ui
     implementation libs.material3
 
+    implementation libs.okhttp
+    implementation libs.google.auth.library.oauth2.http
+    implementation libs.google.api.client
+    implementation libs.kotlinx.coroutines.core
+    implementation libs.kotlinx.coroutines.android.v170
+    implementation libs.play.services.auth
     implementation libs.gson
 
     implementation libs.generativeai

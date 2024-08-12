@@ -2,6 +2,7 @@
     <string name="app_name">Casuelouh</string>
     <string name="capture_button_description">Capture button</string>
     <string name="prompt_button_description">Prompt button</string>
+    <string name="outfit_image_description">Outfit image</string>
 
     <!--  prompts  -->
     <string name="outfit_prompt">Suppose that a piece of clothing is characterized by the following properties:
@@ -9,7 +10,7 @@
 - coloring: string, describe the coloring of this element (e.g. red, brown, blue with white spots, black and green, … etc).
 - gender: string, (e.g. Men, Unisex, Girls, … etc).
 - usage: string, (e.g. casual, formal, smart casual, sport, … etc).
-- pattern: string, (e.g. plain, floral, striped, gradient, … etc).
+- pattern: string, (e.g. plain, floral, vertically/horizontally striped, gradient, … etc).
 
 
 In the attached image, you see some piece of clothing. Try to detect its properties. If you are unsure about some property, just give your best guess with no extra reasoning or explanation.
