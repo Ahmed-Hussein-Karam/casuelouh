@@ -15,7 +15,6 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.OptIn
 import androidx.appcompat.app.AppCompatActivity
@@ -60,12 +59,16 @@ class MainActivity : AppCompatActivity() {
     private lateinit var promptStackOverlay: LinearLayout
     private lateinit var promptButtons: MutableList<Button>
     private lateinit var geminiApiKey: String
-    private var isCapturing = false
 
     private lateinit var outfitPrompt: String
     private lateinit var emptyOutfit: String
 
     private lateinit var googleCredentials: GoogleCredentials
+
+    private var isCapturing = false
+    private var lastImageBase64 = ""
+    private var imagenCreateImageUrl = "https://europe-west2-aiplatform.googleapis.com/v1/projects/casuelouh/locations/europe-west2/publishers/google/models/imagegeneration@006:predict"
+    private var imagenEditImageUrl = "https://europe-west2-aiplatform.googleapis.com/v1/projects/casuelouh/locations/europe-west2/publishers/google/models/imagegeneration@002:predict"
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -118,7 +121,10 @@ class MainActivity : AppCompatActivity() {
             val view = promptStackOverlay.getChildAt(i)
             if (view is Button) {
                 view.setOnClickListener {
-                   applyPrompt(view.text.toString())
+                    lifecycleScope.launch {
+                        applyHotPrompt(view.text.toString())
+                        promptStackOverlay.visibility = View.GONE
+                    }
                 }
                 promptButtons.add(view)
             }
@@ -232,10 +238,12 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     lifecycleScope.launch {
-                        generateOutfitImage(getString(R.string.outfit_plot, outfitResponse.outfit.toString()))
+                        lastImageBase64 = generateOutfitImage(getString(R.string.outfit_plot_parameterized, outfitResponse.outfit.toString()), false)
 
                         // Show hot prompts
-                        promptStackOverlay.visibility = View.VISIBLE
+                        if (lastImageBase64.isNotEmpty()) {
+                            promptStackOverlay.visibility = View.VISIBLE
+                        }
 
                         toggleCaptureButton(true)
                     }
@@ -300,29 +308,48 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun generateOutfitImage(prompt: String) {
+    private suspend fun generateOutfitImage(prompt: String, isHotPrompt: Boolean): String {
         val client = OkHttpClient()
         val jsonMediaType = "application/json; charset=utf-8".toMediaTypeOrNull()
-        val jsonBody = "{\n" +
-                "  \"instances\": [\n" +
-                "    {\n" +
-                "      \"prompt\": \"${prompt}\"\n" +
-                "    }\n" +
-                "  ],\n" +
-                "  \"parameters\": {\n" +
-                "    \"sampleCount\": 1\n" +
-                "  }\n" +
-                "}"
+        val jsonBody = if (isHotPrompt)
+            "{\n" +
+            "  \"instances\": [\n" +
+            "    {\n" +
+            "      \"prompt\": \"${prompt}\",\n" +
+            "      \"image\": {\n" +
+            "        \"bytesBase64Encoded\": \"${lastImageBase64}\"" +
+            "       }\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"parameters\": {\n" +
+            "    \"sampleCount\": 1,\n" +
+            "    \"IsProductImage\": false," +
+            "    \"editConfig\": {" +
+            "      \"guidanceScale\": 60" +
+            "    }\n" +
+            "  }\n" +
+            "}"
+        else
+            "{\n" +
+            "  \"instances\": [\n" +
+            "    {\n" +
+            "      \"prompt\": \"${prompt}\"\n" +
+            "    }\n" +
+            "  ],\n" +
+            "  \"parameters\": {\n" +
+            "    \"sampleCount\": 1\n" +
+            "  }\n" +
+            "}"
 
         val body = jsonBody.toRequestBody(jsonMediaType)
         val request = Request.Builder()
             .addHeader("Authorization", "Bearer ${googleCredentials.accessToken!!.tokenValue}")
-            .url("https://europe-west2-aiplatform.googleapis.com/v1/projects/casuelouh/locations/europe-west2/publishers/google/models/imagegeneration@006:predict")
+            .url(if (isHotPrompt) imagenEditImageUrl else imagenCreateImageUrl)
             .post(body)
             .build()
 
         // Execute the request
-        withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             client.newCall(request).execute().use { response ->
                 if (response.isSuccessful) {
                     Log.i("[INFO]", "successful Imagen API response")
@@ -337,16 +364,21 @@ class MainActivity : AppCompatActivity() {
                                 displayImageInOverlay(bytesBase64Encoded)
                             }
                         }
+
+                        return@withContext bytesBase64Encoded?: ""
                     } ?: Log.w("[WARN]: ", "Google Imagen API response is null")
                 }
                 else {
                     Log.e("[ERROR] Google Imagen API error ", "Response: ${response.body?.string()}")
                 }
+
+                ""
             }
         }
     }
     
-    private fun applyPrompt(prompt: String) {
-        Toast.makeText(this, prompt, Toast.LENGTH_SHORT).show()
+    private suspend fun applyHotPrompt(hotPrompt: String) {
+        toggleCaptureButton(false)
+        lastImageBase64 = generateOutfitImage(getString(R.string.hot_prompt_parameterized, hotPrompt), true)
     }
 }

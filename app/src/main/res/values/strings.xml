@@ -50,11 +50,11 @@ Corner cases:
 - if more than one piece of clothing appear in the image, just pick one of them and work on it.
 - if you see no clothes in the image, return empty json arrays like this: {"outfit": [], "hotPrompts": []}
     </string>
-    <string name="outfit_plot">Given the following json array that represents a clothing outfit: %1$s
+    <string name="outfit_plot_parameterized">Given the following json array that represents a clothing outfit: %1$s
 generate an image of a mannequin wearing that outfit
     </string>
-    <string name="hot_prompt">Given the following image representing a mannequin wearing some outfit: %1$
-Apply the following change on the outfit: %2$s. And then return the updated image.
+    <string name="hot_prompt_parameterized">Given this image that represents a mannequin wearing some outfit,
+ apply the following change on the outfit: %1$s. And then return the updated image.
     </string>
     <string name="empty_outfit">{"outfit": [], "hotPrompts": []}</string>
     <string name="title_activity_splash">SplashActivity</string>
